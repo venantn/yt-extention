@@ -2,6 +2,7 @@ import { getActiveTabURL } from "./utils.js";
 
 const addNewBookmark = (bookmarks, bookmark) => {
   const bookmarkTitleElement = document.createElement("div");
+  const bookmarkNoteElement = document.createElement("input"); // Added input element for note
   const controlsElement = document.createElement("div");
   const newBookmarkElement = document.createElement("div");
 
@@ -9,6 +10,7 @@ const addNewBookmark = (bookmarks, bookmark) => {
   bookmarkTitleElement.className = "bookmark-title";
   controlsElement.className = "bookmark-controls";
 
+  // Set attributes for play and delete buttons
   setBookmarkAttributes("play", onPlay, controlsElement);
   setBookmarkAttributes("delete", onDelete, controlsElement);
 
@@ -16,7 +18,15 @@ const addNewBookmark = (bookmarks, bookmark) => {
   newBookmarkElement.className = "bookmark";
   newBookmarkElement.setAttribute("timestamp", bookmark.time);
 
+  // Set the note value entered by the user
+  bookmarkNoteElement.className = "bookmark-note";
+  bookmarkNoteElement.placeholder = "Add note...";
+  bookmarkNoteElement.addEventListener("change", e => {
+    bookmark.note = e.target.value;
+  });
+
   newBookmarkElement.appendChild(bookmarkTitleElement);
+  newBookmarkElement.appendChild(bookmarkNoteElement); // Append note input element
   newBookmarkElement.appendChild(controlsElement);
   bookmarks.appendChild(newBookmarkElement);
 };
@@ -39,11 +49,13 @@ const viewBookmarks = (currentBookmarks=[]) => {
 
 const onPlay = async e => {
   const bookmarkTime = e.target.parentNode.parentNode.getAttribute("timestamp");
+  const bookmarkNote = e.target.parentNode.parentNode.getElementsByClassName("bookmark-note")[0].value; // Get the note value
   const activeTab = await getActiveTabURL();
 
   chrome.tabs.sendMessage(activeTab.id, {
     type: "PLAY",
     value: bookmarkTime,
+    note: bookmarkNote // Include note in the message
   });
 };
 
@@ -56,11 +68,15 @@ const onDelete = async e => {
 
   bookmarkElementToDelete.parentNode.removeChild(bookmarkElementToDelete);
 
+  const bookmarkNote = bookmarkElementToDelete.getElementsByClassName("bookmark-note")[0].value; // Get the note value
+
   chrome.tabs.sendMessage(activeTab.id, {
     type: "DELETE",
     value: bookmarkTime,
+    note: bookmarkNote // Include note in the message
   }, viewBookmarks);
 };
+
 
 const setBookmarkAttributes =  (src, eventListener, controlParentElement) => {
   const controlElement = document.createElement("img");
